@@ -1,7 +1,6 @@
-using JuMP
-import HiGHs
-
 module BatteryModel
+using JuMP, Infiltrator
+import HiGHS
 
 export BatteryParams, optimise_battery_charge
 
@@ -30,8 +29,6 @@ struct BatteryParams
     capex::Float64
     opex::Float64
 end
-
-@doc 
 """
 optimise_battery_charge(prices, params, del_t=1800)
 
@@ -49,39 +46,41 @@ energies_in: N x 1 matrix representing the amount of power going into the batter
 total_profit: float representing the total costs 
 """ 
 function optimise_battery_charge(prices, params::BatteryParams, del_t=1800)
+    @infiltrate
     N = size(prices)[1]
     overflow = 0.0
-    max_samples = Int(params.max_years/del_t)
+    max_samples = Int(round(params.lifetime_years*31536000/del_t))
     if N > max_samples
         overflow = N - max_samples
         N = max_samples
     end
     
-    model = Model()
-
+    model = Model(HiGHS.Optimizer)
+    print("Nearly there")
     @variable(model, energy_in1[1:N]) # For market 1
     @variable(model, energy_out1[1:N])
-    @variable(model, powers[1:N])
-    @variable(model, energies[1:N])
-    @variable(model, cycles[1:N])
-    @variable(model, maximum_capacities[1:N])
+    @variable(model, powers[1:N], lower_bound=-params.max_discharge_rate, upper_bound=params.max_charge_rate)
+    @variable(model, energies[1:N], lower_bound=0.0)
+    @variable(model, cycles[1:N], lower_bound=0.0, upper_bound=params.lifetime_charges)
+    @variable(model, maximum_capacities[1:N], lower_bound=0.0, upper_bound=params.max_storage_volume)
     
     # Initialisation
-    fix(energies[1], 0.0, force=true) # Assume that the battery is not charged at all 
-    fix(cycles[1], 0.0, force=true)
-    fix(maximum_capacities[:], params.capacity, force=true) # For there is no change in the max capacities 
-
+    fix(energies[1], 0.0; force=true) # Assume that the battery is not charged at all 
+    fix(cycles[1], 0.0; force=true)
+    for i in 1:N
+        fix(maximum_capacities[i], params.max_storage_volume; force=true) # For there is no change in the max capacities 
+    end
     # Inequality constraints 
-    @constraint(model, power_min_max, -params.max_discharge_rate < powers < params.max_charge_rate)
-    @constraint(model, energy_min_max, 0.0 < energies < maximum_capacities)
-    @constriant(model, cycles_min_max, 0.0 < cycles < params.max_charges)
-    @constraint(model, maximum_capacities_min_max, 0.0 < maximum_capacities < params.capacity)
-    @constraints(model, energy_in_con[i=1:N], - energies[i] <= energy_in1[i] - energy_out1[i] <= maximum_capacities[i] - energies[i]) 
+    @constraint(model, energy_min_max[i=1:N], energies[i] <= maximum_capacities[i])
+    @constraint(model, energy_in_con1[i=1:N], (-energies[i]) <= energy_in1[i] - energy_out1[i]) 
+    @constraint(model, energy_in_con2[i=1:N], energy_in1[i] - energy_out1[i] <= maximum_capacities[i] - energies[i]) 
 
     # Equality constraints 
     @constraint(model, power_con, powers == (energy_in1 - energy_out1)./del_t)
-    @constraints(model, energy_con[i=1:N-1], energies[i+1] == (energy_in1[i] - energy_out1[i])*params.charging_efficiency) # For now just assume charging and discharging gives the same 
-    @constraints(model, cycles_con[i=1:N-1], cycles[i+1] == cycles[i] + abs(energy_in1[i]-energy_out1[i])/maximum_capacities[i] )
+    @constraint(model, energy_con[i=1:N-1], energies[i+1] == (energy_in1[i] - energy_out1[i])*params.charging_efficiency) # For now just assume charging and discharging gives the same 
+    # @constraint(model, cycles_con[i=1:N-1], cycles[i+1] == cycles[i] + abs(energy_in1[i]-energy_out1[i])/maximum_capacities[i] ) # This is non linear
+    # @constraint(model, cycles_con[i=1:N-1], cycles[i+1] == cycles[i] + abs(energy_in1[i]-energy_out1[i])/ params.max_storage_volume ) 
+    @constraint(model, cycles_con[i=1:N-1], cycles[i+1] == cycles[i]) 
 
     # Reduce the cost as much as possible
     @objective(model, Min, sum((energy_in1[i] - energy_out1[i])*prices[i] for i in 1:N))

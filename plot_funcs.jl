@@ -7,7 +7,7 @@ using .BatteryModel
 """
 Calculate the total yearly profits of the battery
 """
-function calculate_yearly_profits(prices, energies_in, energies_out, battery_params:BatteryParams, years)
+function calculate_yearly_profits(prices, energies_in, energies_out, battery_params::BatteryParams, years)
     net_revenue = - sum(prices.*(energies_in.-energies_out))
     return (net_revenue - battery_params.opex*years - battery_params.capex) / years
 end
