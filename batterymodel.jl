@@ -60,6 +60,7 @@ function optimise_battery_charge(prices, params::BatteryParams, del_t=1800)
     model = Model()
 
     @variable(model, energy_in1[1:N]) # For market 1
+    @variable(model, energy_out1[1:N])
     @variable(model, powers[1:N])
     @variable(model, energies[1:N])
     @variable(model, cycles[1:N])
@@ -75,15 +76,15 @@ function optimise_battery_charge(prices, params::BatteryParams, del_t=1800)
     @constraint(model, energy_min_max, 0.0 < energies < maximum_capacities)
     @constriant(model, cycles_min_max, 0.0 < cycles < params.max_charges)
     @constraint(model, maximum_capacities_min_max, 0.0 < maximum_capacities < params.capacity)
-    @constraints(model, energy_in_con[i=1:N], - energies[i] <= energy_in1[i] <= maximum_capacities[i] - energies[i]) 
+    @constraints(model, energy_in_con[i=1:N], - energies[i] <= energy_in1[i] - energy_out1[i] <= maximum_capacities[i] - energies[i]) 
 
     # Equality constraints 
-    @constraint(model, power_con, powers == (energy_in1)./del_t)
-    @constraints(model, energy_con[i=1:N-1], energies[i+1] == energy_in1[i]*params.charging_efficiency) # For now just assume charging and discharging gives the same 
-    @constraints(model, cycles_con[i=1:N-1], cycles[i+1] == cycles[i] + abs(energy_in[i])/maximum_capacities[i] )
+    @constraint(model, power_con, powers == (energy_in1 - energy_out1)./del_t)
+    @constraints(model, energy_con[i=1:N-1], energies[i+1] == (energy_in1[i] - energy_out1[i])*params.charging_efficiency) # For now just assume charging and discharging gives the same 
+    @constraints(model, cycles_con[i=1:N-1], cycles[i+1] == cycles[i] + abs(energy_in1[i]-energy_out1[i])/maximum_capacities[i] )
 
     # Reduce the cost as much as possible
-    @objective(model, Min, sum(energy_in[i]*prices[i] for i in 1:N))
+    @objective(model, Min, sum((energy_in1[i] - energy_out1[i])*prices[i] for i in 1:N))
 
     optimize!(model)
     @assert is_solved_and_feasible(model)
@@ -93,6 +94,7 @@ function optimise_battery_charge(prices, params::BatteryParams, del_t=1800)
         # Add overflow zeros to the end
 
     end
+    return model.energy_in1, model.energy_out1, model.energies, model.cycle, model.maximum_capacities
 end
 
 end
