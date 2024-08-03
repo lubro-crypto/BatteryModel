@@ -1,0 +1,10 @@
+max_charging_rate: 2 # MW
+max_discharging_rate: 2 # MW
+max_storage_volume: 4 # MWh
+charging_efficiency: 0.05 
+discharging_efficiency: 0.05 
+lifetime_years: 10 # years
+lifetime_cycles: 5000 # charges
+degradation_rate: 0.001 # % /cycle
+capex: 500000 # gbp
+opex: 5000 # gbp/year

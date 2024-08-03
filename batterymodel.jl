@@ -1,26 +1,32 @@
+using JuMP
+import HiGHs
+
+module BatteryModel
+
+export BatteryParams, optimise_battery_charge
 
 """
 Battery Params
-- capacity - maximum storage volume of the battery - MWh
 - max_charge_rate - maximum charging rate of the battery - MW
 - max_discharging_rate - maximum discharging rate of the battery - MW 
-- degradiation_rate - the rate at which the battery degrades each charge cycle - % 
+- max_storage_volume - maximum storage volume of the battery - MWh
 - charging_efficiency - percentage of energy from the grid that charges the battery - % 
 - discharging_efficiency - percentage of energy from the grid that discharges the battery - %
-- max_charges - maximum number of charges cycles that the battery can use - cycles 
-- max_years - maximum number of years of use before the battery become unusable - yrs
+- lifetime_years - maximum number of years of use before the battery become unusable - yrs
+- litetime_charges - maximum number of charges cycles that the battery can use - cycles 
+- degradiation_rate - the rate at which the battery degrades each charge cycle - % 
 - capex - the total capital cost of the battery storage unit - gbp 
 - opex - the yearly cost of running the battery storay unit - gbp
 """
 struct BatteryParams
-    capacity::Float64 
     max_charge_rate::Float64
     max_discharge_rate::Float64
-    degradiation_rate::Float64
+    max_storage_volume::Float64 
     charging_efficiency::Float64
     discharging_efficiency::Float64
-    max_charges::Float64
-    max_years::Float64
+    lifetime_years::Float64
+    lifetime_charges::Float64
+    degradation_rate::Float64
     capex::Float64
     opex::Float64
 end
@@ -87,4 +93,6 @@ function optimise_battery_charge(prices, params::BatteryParams, del_t=1800)
         # Add overflow zeros to the end
 
     end
+end
+
 end
