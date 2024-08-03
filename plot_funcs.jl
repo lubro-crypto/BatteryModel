@@ -1,9 +1,7 @@
 module PlotFuncs
 
 using CSV, DataFrames, Infiltrator, YAML, Plots, Dates
-include("batterymodel.jl")
-using .BatteryModel
-
+using ..BatteryModel
 """
 Calculate the total yearly profits of the battery
 """
@@ -26,7 +24,7 @@ plot_battery_performance(prices, charges, del_t=1800)
 function plot_battery_performance(prices, energies_in, energies_out, energies, cycles, maximum_capacities, del_t=1800)
     N = length(prices) # Will have to change later
     revenue =  - prices .* (energies_in .- energies_out)
-    time = del_t * enumerate(N) / 86400 # in days
+    time = del_t .* (1:N) ./ 86400 # in days
 
     plot(time, prices, xlabel="Time (days)", ylabel="Revenue (£)")
 
@@ -44,7 +42,7 @@ function plot_battery_performance(prices, energies_in, energies_out, energies, c
 
 end
 
-function write_battery_performance(prices, energies_in, energies_out, energies, cycles, maximum_capacities, start_time, del_t=1800)
+function write_battery_performance(prices, energies_in, energies_out, energies, cycles, maximum_capacities, start_time, battery_params::BatteryParams, del_t=1800)
     # Write the total revenue to a text file
     N = length(prices)
     years = N * del_t/ 86400

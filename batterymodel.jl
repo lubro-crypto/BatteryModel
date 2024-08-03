@@ -93,7 +93,8 @@ function optimise_battery_charge(prices, params::BatteryParams, del_t=1800)
         # Add overflow zeros to the end
 
     end
-    return model.energies_in1, model.energies_out1, model.energies, model.cycle, model.maximum_capacities
+
+    return value.(energy_in1), value.(energy_out1), value.(energies), value.(cycles), value.(maximum_capacities)
 end
 
 end
