@@ -1,4 +1,4 @@
-﻿,Market_1,Market_2,TransmissionSystemElectricityDemand,WindGeneration,SolarGeneration,CoalGeneration,GasGeneration
+﻿time,Market_1,Market_2,TransmissionSystemElectricityDemand,WindGeneration,SolarGeneration,CoalGeneration,GasGeneration
 01/01/2018 00:00,48.47,52.18,25506,10715.5,0.0152,1520,3796
 01/01/2018 00:30,49.81,51.6,26267,10650.5,0.00851,1640,3796
 01/01/2018 01:00,53.65,55.14,26122,10560,0.0019,1766.25,3796
