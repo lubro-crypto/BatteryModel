@@ -21,24 +21,26 @@ plot_battery_performance(prices, charges, del_t=1800)
 - Plot of the maximum capacity of the battery
 - Plot of the total costs of each of the markets 
 """
-function plot_battery_performance(prices, energies_in, energies_out, energies, cycles, maximum_capacities, del_t=1800)
+function plot_battery_performance(prices, energies_in, energies_out, energies, cycles, maximum_capacities, del_t=1800, save_folder="plots/")
     N = length(prices) # Will have to change later
     revenue =  - prices .* (energies_in .- energies_out)
     time = del_t .* (1:N) ./ 86400 # in days
 
-    plot(time, prices, xlabel="Time (days)", ylabel="Revenue (£)")
+    p_prices = plot(time, prices, xlabel="Time (days)", ylabel="Prices (£)")
+    savefig(p_prices, save_folder*"prices_fig.png")
 
-    plot(time, energies_in, xlabel="Time (days)", ylabel="Energy into Battery (MWh)")
+    p_energies_in = plot(time, energies_in, xlabel="Time (days)", ylabel="Energy into Battery (MWh)")
+    savefig(p_energies_in, save_folder*"energies_in_fig.png")
 
-    plot(time, energies_out, xlabel="Time (days)", ylabel="Energy out of Battery (MWh)")
+    p_energy = plot(time, energies, xlabel="Time (days)", ylabel="Battery Energy (MWh)")
+    savefig(p_energy, save_folder*"battery_energy_fig.png")
 
-    plot(time, energies, xlabel="Time (days)", ylabel="Battery Energy (MWh)")
+    p_cycles = plot(time, cycles, xlabel="Time (days)", ylabel="Cycles (MWh)")
+    savefig(p_cycles, save_folder*"battery_cycles_fig.png")
 
-    plot(time, cycles, xlabel="Time (days)", ylabel="Cycles (MWh)")
+    p_max_cap = plot(time, maximum_capacities, xlabel="Time (days)", ylabel="Max Capacity (MWh)")
+    savefig(p_max_cap, save_folder*"battery_max_cap_fig.png")
 
-    plot(time, maximum_capacities, xlabel="Time (days)", ylabel="Max Capacity (MWh)")
-
-    plot(time, revenue, xlabel="Time (days)", ylabel="Revenue (GBP)")
 
 end
 
@@ -52,7 +54,7 @@ function write_battery_performance(prices, energies_in, energies_out, energies, 
     close(file)
     # Write the data to a CSV file
     del_timestep = Dates.Second(del_t)
-    time_steps = [start_time + i*del_timestep for i in 0:N]
+    time_steps = [start_time + i*del_timestep for i in 0:(N-1)]
     output_df = DataFrame(Time=time_steps, Energy_in=energies_in, Energy_out=energies_out, total_energies=energies, battery_cycles=cycles, maximum_capacities=maximum_capacities)
     CSV.write("data/output_data/battery_output_data.cvs", output_df)
 end
