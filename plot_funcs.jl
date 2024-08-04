@@ -7,7 +7,7 @@ Calculate the total yearly profits of the battery
 """
 function calculate_yearly_profits(prices, energies_in, energies_out, battery_params::BatteryParams, years)
     net_revenue = - sum(prices.*(energies_in.-energies_out))
-    return (net_revenue - battery_params.opex*years - battery_params.capex) / years
+    return (net_revenue - battery_params.opex*years - battery_params.capex) / years, net_revenue
 end
 
 """
@@ -21,7 +21,7 @@ plot_battery_performance(prices, charges, del_t=1800)
 - Plot of the maximum capacity of the battery
 - Plot of the total costs of each of the markets 
 """
-function plot_battery_performance(prices, energies_in, energies_out, energies, cycles, maximum_capacities, del_t=1800, save_folder="plots/")
+function plot_battery_performance(prices, energies_in, energies_out, energies, powers, cycles, maximum_capacities, del_t=1800, save_folder="plots/")
     N = length(prices) # Will have to change later
     revenue =  - prices .* (energies_in .- energies_out)
     time = del_t .* (1:N) ./ 86400 # in days
@@ -41,15 +41,23 @@ function plot_battery_performance(prices, energies_in, energies_out, energies, c
     p_max_cap = plot(time, maximum_capacities, xlabel="Time (days)", ylabel="Max Capacity (MWh)")
     savefig(p_max_cap, save_folder*"battery_max_cap_fig.png")
 
+    p_max_cap = plot(time, powers, xlabel="Time (days)", ylabel="Power in (MW)")
+    savefig(p_max_cap, save_folder*"power_fig.png")
 
+    p_energies_out = plot(time, energies_out, xlabel="Time (days)", ylabel="Energy out (MWh)")
+    savefig(p_energies_out, save_folder*"energies_out_fig.png")
+
+    p_revenues = plot(time, revenue, xlabel="Time (date)", ylabel="Revenue (GBP)")
+    savefig(p_revenues, save_folder*"revenues_fig.png")
 end
 
 function write_battery_performance(prices, energies_in, energies_out, energies, cycles, maximum_capacities, start_time, battery_params::BatteryParams, del_t=1800)
     # Write the total revenue to a text file
     N = length(prices)
     years = N * del_t/ 86400
-    total_profits = calculate_yearly_profits(prices, energies_in, energies_out, battery_params, years)
+    total_profits, net_revenue = calculate_yearly_profits(prices, energies_in, energies_out, battery_params, years)
     file = open("data/output_data/total_profits.txt", "w")
+    write(file, "The total revenue (gbp) is $net_revenue\n")
     write(file, "The total annual profits (gbp/year) are $total_profits\n")
     close(file)
     # Write the data to a CSV file

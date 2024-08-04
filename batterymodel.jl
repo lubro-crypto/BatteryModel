@@ -57,8 +57,8 @@ function optimise_battery_charge(prices, params::BatteryParams, del_t=1800)
     
     model = Model(HiGHS.Optimizer)
     print("Nearly there")
-    @variable(model, energy_in1[1:N]) # For market 1
-    @variable(model, energy_out1[1:N])
+    @variable(model, energy_in1[1:N], lower_bound=0.0 ) # For market 1
+    @variable(model, energy_out1[1:N], lower_bound = 0.0)
     @variable(model, powers[1:N], lower_bound=-params.max_discharge_rate, upper_bound=params.max_charge_rate)
     @variable(model, energies[1:N], lower_bound=0.0)
     @variable(model, cycles[1:N], lower_bound=0.0, upper_bound=params.lifetime_charges)
@@ -72,12 +72,13 @@ function optimise_battery_charge(prices, params::BatteryParams, del_t=1800)
     end
     # Inequality constraints 
     @constraint(model, energy_min_max[i=1:N], energies[i] <= maximum_capacities[i])
-    @constraint(model, energy_in_con1[i=1:N], (-energies[i]) <= energy_in1[i] - energy_out1[i]) 
-    @constraint(model, energy_in_con2[i=1:N], energy_in1[i] - energy_out1[i] <= maximum_capacities[i] - energies[i]) 
+    @constraint(model, energy_out_con[i=1:N], energy_out1[i] <= (energies[i])) 
+    @constraint(model, energy_in_con[i=1:N], energy_in1[i] <= maximum_capacities[i] - energies[i] )
 
     # Equality constraints 
-    @constraint(model, power_con, powers == (energy_in1 - energy_out1)./del_t)
-    @constraint(model, energy_con[i=1:N-1], energies[i+1] == (energy_in1[i] - energy_out1[i])*params.charging_efficiency) # For now just assume charging and discharging gives the same 
+    num_of_hrs = del_t / 3600
+    @constraint(model, power_con, powers == (energy_in1 - energy_out1)./num_of_hrs)
+    @constraint(model, energy_con[i=1:N-1], energies[i+1] == energies[i]+(energy_in1[i] - energy_out1[i])*params.charging_efficiency) # For now just assume charging and discharging gives the same 
     # @constraint(model, cycles_con[i=1:N-1], cycles[i+1] == cycles[i] + abs(energy_in1[i]-energy_out1[i])/maximum_capacities[i] ) # This is non linear
     # @constraint(model, cycles_con[i=1:N-1], cycles[i+1] == cycles[i] + abs(energy_in1[i]-energy_out1[i])/ params.max_storage_volume ) 
     @constraint(model, cycles_con[i=1:N-1], cycles[i+1] == cycles[i]) 
@@ -94,7 +95,7 @@ function optimise_battery_charge(prices, params::BatteryParams, del_t=1800)
 
     end
 
-    return value.(energy_in1), value.(energy_out1), value.(energies), value.(cycles), value.(maximum_capacities)
+    return value.(energy_in1), value.(energy_out1), value.(energies), value.(cycles), value.(maximum_capacities), value.(powers)
 end
 
 end
