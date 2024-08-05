@@ -68,9 +68,7 @@ function optimise_battery_charge(prices, params::BatteryParams, del_t=1800)
     # Initialisation
     fix(energies[1], 0.0; force=true) # Assume that the battery is not charged at all 
     fix(cycles[1], 0.0; force=true)
-    for i in 1:N
-        fix(maximum_capacities[i], params.max_storage_volume; force=true) # For there is no change in the max capacities 
-    end
+    fix(maximum_capacities[1], params.max_storage_volume; force=true) # For there is no change in the max capacities 
     # Inequality constraints 
     @constraint(model, energy_min_max[i=1:N], energies[i] <= maximum_capacities[i])
     @constraint(model, energy_out_con[i=1:N], energy_out1[i] <= (energies[i])) 
@@ -80,11 +78,11 @@ function optimise_battery_charge(prices, params::BatteryParams, del_t=1800)
 
     # Equality constraints 
     num_of_hrs = del_t / 3600
+    const_nat_log_deg_rate = log(1-params.degradation_rate)
     @constraint(model, power_con, powers == (energy_in1 - energy_out1)./num_of_hrs)
     @constraint(model, energy_con[i=1:N-1], energies[i+1] == energies[i]+(energy_in1[i] - energy_out1[i])*params.charging_efficiency) # For now just assume charging and discharging gives the same 
-    # @constraint(model, cycles_con[i=1:N-1], cycles[i+1] == cycles[i] + abs(energy_in1[i]-energy_out1[i])/maximum_capacities[i] ) # This is non linear
-    # @constraint(model, cycles_con[i=1:N-1], cycles[i+1] == cycles[i] + abs(energy_in1[i]-energy_out1[i])/ params.max_storage_volume ) 
     @constraint(model, cycles_con[i=1:N-1], (cycles[i+1] - cycles[i])*params.max_storage_volume == t[i]) 
+    @constraint(model, maximum_cap_con[i=1:N], maximum_capacities[i] == params.max_storage_volume*(1+const_nat_log_deg_rate*cycles[i]))
 
     # Reduce the cost as much as possible
     @objective(model, Min, sum((energy_in1[i] - energy_out1[i])*prices[i] for i in 1:N))
