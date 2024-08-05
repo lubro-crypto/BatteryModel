@@ -63,6 +63,7 @@ function optimise_battery_charge(prices, params::BatteryParams, del_t=1800)
     @variable(model, energies[1:N], lower_bound=0.0)
     @variable(model, cycles[1:N], lower_bound=0.0, upper_bound=params.lifetime_charges)
     @variable(model, maximum_capacities[1:N], lower_bound=0.0, upper_bound=params.max_storage_volume)
+    @variable(model, t[1:N], lower_bound=-params.max_storage_volume, upper_bound=params.max_storage_volume) # dummy variable
     
     # Initialisation
     fix(energies[1], 0.0; force=true) # Assume that the battery is not charged at all 
@@ -74,6 +75,8 @@ function optimise_battery_charge(prices, params::BatteryParams, del_t=1800)
     @constraint(model, energy_min_max[i=1:N], energies[i] <= maximum_capacities[i])
     @constraint(model, energy_out_con[i=1:N], energy_out1[i] <= (energies[i])) 
     @constraint(model, energy_in_con[i=1:N], energy_in1[i] <= maximum_capacities[i] - energies[i] )
+    @constraint(model, abs_pos_con[i=1:N], energy_in1[i] - energy_out1[i] <= t[i])
+    @constraint(model, abs_neg_con[i=1:N], -(energy_in1[i] - energy_out1[i]) <= t[i])
 
     # Equality constraints 
     num_of_hrs = del_t / 3600
@@ -81,7 +84,7 @@ function optimise_battery_charge(prices, params::BatteryParams, del_t=1800)
     @constraint(model, energy_con[i=1:N-1], energies[i+1] == energies[i]+(energy_in1[i] - energy_out1[i])*params.charging_efficiency) # For now just assume charging and discharging gives the same 
     # @constraint(model, cycles_con[i=1:N-1], cycles[i+1] == cycles[i] + abs(energy_in1[i]-energy_out1[i])/maximum_capacities[i] ) # This is non linear
     # @constraint(model, cycles_con[i=1:N-1], cycles[i+1] == cycles[i] + abs(energy_in1[i]-energy_out1[i])/ params.max_storage_volume ) 
-    @constraint(model, cycles_con[i=1:N-1], cycles[i+1] == cycles[i]) 
+    @constraint(model, cycles_con[i=1:N-1], (cycles[i+1] - cycles[i])*params.max_storage_volume == t[i]) 
 
     # Reduce the cost as much as possible
     @objective(model, Min, sum((energy_in1[i] - energy_out1[i])*prices[i] for i in 1:N))
@@ -94,9 +97,12 @@ function optimise_battery_charge(prices, params::BatteryParams, del_t=1800)
         # Add overflow zeros to the end
 
     end
+    energies_mat = value.(energies)
+    energies_in1_mat = value.(energy_in1)
+    energies_out1_mat = value.(energy_out1)
     for i in 1:(N-1)
-        lhs_val = value.(energies)[i+1]
-        rhs_val = value.(energies)[i] + (value.(energy_in1)[i] - value.(energy_out1)[i])*params.charging_efficiency
+        lhs_val = energies_mat[i+1]
+        rhs_val = energies_mat[i] + (energies_in1_mat[i] - energies_out1_mat[i])*params.charging_efficiency
         @assert  isapprox(lhs_val, rhs_val; atol=1e-5) 
     end
 
