@@ -26,38 +26,39 @@ function plot_battery_performance(prices, energies_in, energies_out, energies, p
     revenue =  - prices .* (energies_in .- energies_out)
     time = del_t .* (1:N) ./ 86400 # in days
 
-    p_prices = plot(time, prices, xlabel="Time (days)", ylabel="Prices (£)")
+    p_prices = plot(time, prices, xlabel="Time (days)", ylabel="Prices (£)", legend=false)
     savefig(p_prices, save_folder*"prices_fig.png")
 
-    p_energies_in = plot(time, energies_in, xlabel="Time (days)", ylabel="Energy into Battery (MWh)")
+    p_energies_in = plot(time, energies_in, xlabel="Time (days)", ylabel="Energy into Battery (MWh)", legend=false)
     savefig(p_energies_in, save_folder*"energies_in_fig.png")
 
-    p_energy = plot(time, energies, xlabel="Time (days)", ylabel="Battery Energy (MWh)")
+    p_energy = plot(time, energies, xlabel="Time (days)", ylabel="Battery Energy (MWh)", legend=false)
     savefig(p_energy, save_folder*"battery_energy_fig.png")
 
-    p_cycles = plot(time, cycles, xlabel="Time (days)", ylabel="Cycles (MWh)")
+    p_cycles = plot(time, cycles, xlabel="Time (days)", ylabel="Cycles (MWh)", legend=false)
     savefig(p_cycles, save_folder*"battery_cycles_fig.png")
 
-    p_max_cap = plot(time, maximum_capacities, xlabel="Time (days)", ylabel="Max Capacity (MWh)")
+    p_max_cap = plot(time, maximum_capacities, xlabel="Time (days)", ylabel="Max Capacity (MWh)", legend=false)
     savefig(p_max_cap, save_folder*"battery_max_cap_fig.png")
 
-    p_max_cap = plot(time, powers, xlabel="Time (days)", ylabel="Power in (MW)")
+    p_max_cap = plot(time, powers, xlabel="Time (days)", ylabel="Power in (MW)", legend=false)
     savefig(p_max_cap, save_folder*"power_fig.png")
 
-    p_energies_out = plot(time, energies_out, xlabel="Time (days)", ylabel="Energy out (MWh)")
+    p_energies_out = plot(time, energies_out, xlabel="Time (days)", ylabel="Energy out (MWh)", legend=false)
     savefig(p_energies_out, save_folder*"energies_out_fig.png")
 
-    p_revenues = plot(time, revenue, xlabel="Time (date)", ylabel="Revenue (GBP)")
+    p_revenues = plot(time, revenue, xlabel="Time (date)", ylabel="Revenue (GBP)", legend=false)
     savefig(p_revenues, save_folder*"revenues_fig.png")
 end
 
 function write_battery_performance(prices, energies_in, energies_out, energies, cycles, maximum_capacities, start_time, battery_params::BatteryParams, del_t=1800)
     # Write the total revenue to a text file
     N = length(prices)
-    years = N * del_t/ 86400
+    years = N * del_t/ 31536000
     total_profits, net_revenue = calculate_yearly_profits(prices, energies_in, energies_out, battery_params, years)
     file = open("data/output_data/total_profits.txt", "w")
     write(file, "The total revenue (gbp) is $net_revenue\n")
+    write(file, "In $years years\n")
     write(file, "The total annual profits (gbp/year) are $total_profits\n")
     close(file)
     # Write the data to a CSV file

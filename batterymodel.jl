@@ -94,6 +94,11 @@ function optimise_battery_charge(prices, params::BatteryParams, del_t=1800)
         # Add overflow zeros to the end
 
     end
+    for i in 1:(N-1)
+        lhs_val = value.(energies)[i+1]
+        rhs_val = value.(energies)[i] + (value.(energy_in1)[i] - value.(energy_out1)[i])*params.charging_efficiency
+        @assert  isapprox(lhs_val, rhs_val; atol=1e-5) 
+    end
 
     return value.(energy_in1), value.(energy_out1), value.(energies), value.(cycles), value.(maximum_capacities), value.(powers)
 end
