@@ -78,11 +78,11 @@ function optimise_battery_charge(prices, params::BatteryParams, del_t=1800)
 
     # Equality constraints 
     num_of_hrs = del_t / 3600
-    const_nat_log_deg_rate = log(1-params.degradation_rate)
+    const_nat_log_deg_rate = log(params.degradation_rate)
     @constraint(model, power_con, powers == (energy_in1 - energy_out1)./num_of_hrs)
     @constraint(model, energy_con[i=1:N-1], energies[i+1] == energies[i]+(energy_in1[i] - energy_out1[i])*params.charging_efficiency) # For now just assume charging and discharging gives the same 
     @constraint(model, cycles_con[i=1:N-1], (cycles[i+1] - cycles[i])*params.max_storage_volume == t[i]) 
-    @constraint(model, maximum_cap_con[i=1:N], maximum_capacities[i] == params.max_storage_volume*(1+const_nat_log_deg_rate*cycles[i]))
+    @constraint(model, maximum_cap_con[i=2:N], maximum_capacities[i] == maximum_capacities[i-1] - params.max_storage_volume*(1 + const_nat_log_deg_rate*(cycles[i] - cycles[i-1])))
 
     # Reduce the cost as much as possible
     @objective(model, Min, sum((energy_in1[i] - energy_out1[i])*prices[i] for i in 1:N))
