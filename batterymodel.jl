@@ -1,6 +1,6 @@
 module BatteryModel
 using JuMP, Infiltrator
-import HiGHS
+import HiGHS, Cbc
 
 export BatteryParams, optimise_battery_charge
 
@@ -50,7 +50,6 @@ maximum_capacities: N x 1 vector representing the maximum capacity of the batter
 powers: N x 1 vector representing the battery power 
 """ 
 function optimise_battery_charge(prices, params::BatteryParams, del_t=1800)
-    @infiltrate
     N = size(prices)[1]
     overflow = 0.0
     max_samples = Int(round(params.lifetime_years*31536000/del_t))
@@ -60,7 +59,8 @@ function optimise_battery_charge(prices, params::BatteryParams, del_t=1800)
     end
     
     model = Model(HiGHS.Optimizer)
-    print("Nearly there")
+    set_attribute(model, "parallel", "on")
+    set_attribute(model, "threads", 8)
     @variable(model, energy_in1[1:N], lower_bound=0.0, upper_bound = params.max_storage_volume ) # For market 1
     @variable(model, energy_out1[1:N], lower_bound = 0.0, upper_bound = params.max_storage_volume)
     @variable(model, energy_in2[1:N], lower_bound=0.0, upper_bound = params.max_storage_volume) # For market 2
@@ -68,18 +68,16 @@ function optimise_battery_charge(prices, params::BatteryParams, del_t=1800)
     @variable(model, powers[1:N], lower_bound=-params.max_discharge_rate, upper_bound=params.max_charge_rate)
     @variable(model, energies[1:N], lower_bound=0.0, upper_bound = params.max_storage_volume)
     @variable(model, cycles[1:N], lower_bound=0.0, upper_bound=params.lifetime_charges)
-    @variable(model, maximum_capacities[1:N], lower_bound=0.0, upper_bound=params.max_storage_volume)
     @variable(model, t[1:N], lower_bound=-params.max_storage_volume, upper_bound=params.max_storage_volume) # dummy variable
     
     # Initialisation
     fix(energies[1], 0.0; force=true) # Assume that the battery is not charged at all 
     fix(cycles[1], 0.0; force=true)
-    for i in 1:N
-        fix(maximum_capacities[i], params.max_storage_volume; force=true) # For there is no change in the max capacities 
-    end 
+
+    max_cap_arr = ones(N).*params.max_storage_volume
     # Inequality constraints 
     @constraint(model, energy_out_con, energy_out1 + energy_out2 <= (energies)) 
-    @constraint(model, energy_in_con, energy_in1 + energy_in1 <= maximum_capacities - energies )
+    @constraint(model, energy_in_con, energy_in1 + energy_in1 <= max_cap_arr - energies )
     @constraint(model, abs_pos_con, energy_in1 + energy_in2 - energy_out1 - energy_out2 <= t)
     @constraint(model, abs_neg_con, -(energy_in1 + energy_in2 - energy_out1 - energy_out2) <= t)
 
@@ -103,7 +101,6 @@ function optimise_battery_charge(prices, params::BatteryParams, del_t=1800)
     energies_in2_arr = value.(energy_in2)
     energies_out2_arr = value.(energy_out2)
     cycles_arr = value.(cycles)
-    max_cap_arr = value.(maximum_capacities)
     powers_arr = value.(powers)
     for i in 1:(N-1)
         lhs_val = energies_arr[i+1]

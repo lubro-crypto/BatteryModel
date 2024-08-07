@@ -51,10 +51,12 @@ function plot_battery_performance(prices, energies_in, energies_out, energies, p
 
     p_energies_in = plot(time, energies_in[:,1], xlabel="Time (days)", ylabel="Energy into Battery (MWh)", label="Market 1 intake")
     p_energies_in = plot!(time, energies_in[:,2], label="Market 2 intake")
+    p_energies_in = plot!(time, energies_in[:,1]+ energies_in[:,2], label="Total intake")
     savefig(p_energies_in, save_folder*"energies_in_fig.png")
 
     p_energies_out = plot(time, energies_out[:,1], xlabel="Time (days)", ylabel="Energy out (MWh)", label="Market 1 output")
     p_energies_out = plot!(time, energies_out[:,2], label="Market 2 output")
+    p_energies_out = plot!(time, energies_out[:,1]+energies_out[:,2], label="Total output" )
     savefig(p_energies_out, save_folder*"energies_out_fig.png")
 
     p_revenues = plot(time, revenues, xlabel="Time (date)", ylabel="Revenue (GBP)", label="Total revenues")

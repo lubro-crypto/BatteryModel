@@ -23,9 +23,8 @@ params = BatteryModel.BatteryParams(
 
 N = length(marketprices1)
 marketprices = hcat(marketprices1, marketprices2)
-marketprices = marketprices[1:Int(round(N/100)),:]
+# marketprices = marketprices[1:Int(round(N/10)),:]
 marketprices = marketprices.*0.5
-print("market prices: $marketprices")
 
 
 @time energy_in, energy_out, energies, cycle, maximum_capacities, powers = BatteryModel.optimise_battery_charge(marketprices, params)
