@@ -12,7 +12,7 @@ Calculate the total yearly profits of the battery
 - years - operational years of the battery
 """
 function calculate_yearly_profits(prices, energies_in, energies_out, battery_params::BatteryParams, years)
-    net_revenue = - (transpose(prices[:,1])*(energies_in[:,1] - energies_out[:,1]) + transpose(prices[:,2])*(energies_in[:,2] - energies_out[:,2]))
+    net_revenue = - (transpose(prices[:,1])*(energies_in[:,1] - energies_out[:,1]) - transpose(prices[:,2])*(energies_in[:,2] - energies_out[:,2]))
     return (net_revenue - battery_params.opex*years - battery_params.capex) / years, net_revenue
 end
 

@@ -58,7 +58,7 @@ function optimise_battery_charge(prices, params::BatteryParams, del_t=1800)
         N = max_samples
     end
     
-    model = Model(HiGHS.Optimizer)
+    model = Model(Cbc.Optimizer)
     set_attribute(model, "parallel", "on")
     set_attribute(model, "threads", 8)
     @variable(model, energy_in1[1:N], lower_bound=0.0, upper_bound = params.max_storage_volume ) # For market 1
@@ -102,11 +102,10 @@ function optimise_battery_charge(prices, params::BatteryParams, del_t=1800)
     energies_out2_arr = value.(energy_out2)
     cycles_arr = value.(cycles)
     powers_arr = value.(powers)
-    for i in 1:(N-1)
-        lhs_val = energies_arr[i+1]
-        rhs_val = energies_arr[i] + (energies_in1_arr[i] + energies_in2_arr[i] - energies_out1_arr[i] - energies_out2_arr[i])*params.charging_efficiency
-        @assert  isapprox(lhs_val, rhs_val; atol=1e-5) 
-    end
+
+    lhs_mat = energies_arr[2:N]
+    rhs_mat = energies_arr[1:(N-1)] + (energies_in1_arr[1:(N-1)] + energies_in2_arr[1:(N-1)] - energies_out1_arr[1:(N-1)] - energies_out2_arr[1:(N-1)])*params.charging_efficiency
+    @assert isapprox(lhs_mat, rhs_mat; atol=1e-5) 
 
     if overflow > 0
         # Add overflow zeros to the end
