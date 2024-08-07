@@ -84,7 +84,7 @@ function optimise_battery_charge(prices, params::BatteryParams, del_t=1800)
     # Equality constraints 
     num_of_hrs = del_t / 3600
     @constraint(model, power_con, powers == (energy_in1 + energy_in2 - energy_out1 - energy_out2)./num_of_hrs)
-    @constraint(model, energy_con[i=1:N-1], energies[i+1] == energies[i]+(energy_in1[i] + energy_in2[i] - energy_out1[i] - energy_out2[i])*params.charging_efficiency) # For now just assume charging and discharging gives the same 
+    @constraint(model, energy_con[i=1:N-1], energies[i+1] == energies[i]+(energy_in1[i] + energy_in2[i] - energy_out1[i] - energy_out2[i])*(1-params.charging_efficiency)) # For now just assume charging and discharging gives the same 
     @constraint(model, cycles_con[i=1:N-1], (cycles[i+1] - cycles[i])*params.max_storage_volume == t[i]) 
 
     # Reduce the cost as much as possible
@@ -104,7 +104,7 @@ function optimise_battery_charge(prices, params::BatteryParams, del_t=1800)
     powers_arr = value.(powers)
 
     lhs_mat = energies_arr[2:N]
-    rhs_mat = energies_arr[1:(N-1)] + (energies_in1_arr[1:(N-1)] + energies_in2_arr[1:(N-1)] - energies_out1_arr[1:(N-1)] - energies_out2_arr[1:(N-1)])*params.charging_efficiency
+    rhs_mat = energies_arr[1:(N-1)] + (energies_in1_arr[1:(N-1)] + energies_in2_arr[1:(N-1)] - energies_out1_arr[1:(N-1)] - energies_out2_arr[1:(N-1)])*(1-params.charging_efficiency)
     @assert isapprox(lhs_mat, rhs_mat; atol=1e-5) 
 
     if overflow > 0

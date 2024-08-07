@@ -103,7 +103,7 @@ function write_battery_performance(prices, energies_in, energies_out, energies, 
     del_timestep = Dates.Second(del_t)
     time_steps = [start_time + i*del_timestep for i in 0:(N-1)]
     output_df = DataFrame(Time=time_steps, Energy_in1=energies_in[:,1], Energy_in2=energies_in[:,2], Energy_out1=energies_out[:,1], Energies_out2=energies_out[:,2], total_energies=energies, battery_cycles=cycles, maximum_capacities=maximum_capacities)
-    CSV.write("data/output_data/battery_output_data.cvs", output_df)
+    CSV.write("data/output_data/battery_output_data.csv", output_df)
 end
 
 end
