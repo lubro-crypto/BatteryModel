@@ -42,7 +42,7 @@ prices: N x 2 matrix representing the two market prices in gbp/MW per half hour
 params: parameters of the battery charge
 del_t: The time step between each sample - by default 30mins = 1800s
 Outputs: 
-energies_in: N x 2 matrix representing the amount of power going into the battery from market 1 (col 1) and from market 2 (col 2)
+energies_in: N x 2 matrix representing the amount of power going into the battery from market 1 (col 1) and from market 2 (col 2) per unit time
 energies_out: N x 2 matrix representing the amount of power going out of the battery to market 1 (col 1) and to market 2 (col 2)
 energy: N x 1 vector representing the battery energy 
 cycles: N x 1 vector representing the battery cycles
@@ -78,7 +78,6 @@ function optimise_battery_charge(prices, params::BatteryParams, del_t=1800)
         fix(maximum_capacities[i], params.max_storage_volume; force=true) # For there is no change in the max capacities 
     end 
     # Inequality constraints 
-    @constraint(model, energy_min_max, energies <= maximum_capacities)
     @constraint(model, energy_out_con, energy_out1 + energy_out2 <= (energies)) 
     @constraint(model, energy_in_con, energy_in1 + energy_in1 <= maximum_capacities - energies )
     @constraint(model, abs_pos_con, energy_in1 + energy_in2 - energy_out1 - energy_out2 <= t)
